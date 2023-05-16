@@ -686,7 +686,7 @@
         \end{alignat*}
 
         Note that the $b_i$'s and the $c_i$'s have switched, the rows of the $a_{ij}$'s have become columns and instead of $n$ variables and $m$ constraints, there are $m$ variables and $n$ constraints. This allows us to capture (standard) LPs in terms of matrices. The primal LP has now become
-        \begin{alignat*}{2}
+\begin{alignat*}{2}
         \text{maximise} &\quad \mathbf{c}^T \mathbf{x}  && \\
         \text{subject to} &\quad A \mathbf{x} &&\leq \mathbf{b} \\
         &\quad \mathbf{x} &&\geq 0 \\
@@ -746,7 +746,7 @@
             \end{alignat*}
             where $f_e$ is the flow on each edge in the network.
         \subsubsection{Circulations}
-            We can also formulate circulation, however as this is a feasibility problem instead of an optimisation problem, there is no objective function. However, this may be a problem as we need to find a starting point for the algorithms available to solve LPs. Hence we introduce nonnegative slack variables for the demands at each of the vertices, if the objective function at its minimum manages to be $0$, then there is a circulation
+            We can also formulate circulation, however as this is a feasibility problem instead of an optimisation problem, there is no objective function. However, this may be an issue as we need to find a starting point for the algorithms available to solve LPs. Hence we introduce nonnegative slack variables for the demands at each of the vertices, if the objective function at its minimum manages to be $0$, then there is a circulation.
 
             \begin{alignat*}{5}
             \text{minimise} &\quad \sum_{v \in V} q_v^+ + q_v^- && \\
@@ -863,6 +863,137 @@
         \end{defn}
         To show that a problem is NP-complete, we hence just need to show that another NP-complete problem $B$ reduces to $A$, and that $A$ is in NP. 
 \section{Approximation Algorithms}
-\section{Fixed Parameter Algorithms}
+    Algorithm $\mathcal{A}$ is a $\rho$-approximation algorithm for a minimisation problem $\mathcal{P}$ if for every instance $x$ of $\mathcal{P}$ the value $\mathcal{A}(x)$ of the solution produced by $\mathcal{A}$ and the value $OPT(x)$ of the optimal solution satisfy $\mathcal{A}(x) \leq \rho \cdot  OPT(x)$. Approximation algorithms are often used to find a "good enough" solution to an NP-complete problem in polynomial time. \\ \\
+    There are three main techniques for constructing approximation algorithms:
+    \begin{itemize}
+        \item Combinatorial Algorithms
+        \item LP Rounding methods
+        \begin{itemize}
+            \item Express the problem as an Integer Linear Prograam
+            \item Relax the integrality constraint to get a regular LP
+            \item Since OPT(ILP) $\geq$ OPT(LP) (for minimisation problems), we round LP to an integral solution of the ILP
+            \item Argue that the integral solution is not far from OPT(LP)
+        \end{itemize}
+        \item Randomised Algorithms
+    \end{itemize}
+    \subsection{2-Approximation Algorithm for MinVertexCover}
+    Let $(V, E)$ be an instance of MinVertexCover, i.e. given a graph $G$, what is the minimum set of vertices that cover every edge in $G$? We can form a 2-approximation algorithm:\\ \\
+    APPROX-VERTEX-COVER(G)
+    \begin{algorithmic}
+        \State{$C := \emptyset$}
+        \While{$\exists e = (u,v)$ not covered by $C$}
+            \State{$C := C \cup \{u,v\}$}
+        \EndWhile
+        \State{Output $C$}
+    \end{algorithmic}
+    
+    $C$ is a minimum vertex cover as the algorithm only terminates once all vertices have been covered. Furthermore, let $A$ denote the edges that have been picked. Any vertex cover (in particular optimal $C^*$) must include at least one endpoint of each edge in $A$. No two edges in $A$ share an endpoint, as once an edge $e = (u,v)$ has been added to $A$, all other edges that are incident on either $u$ or $v$  will not be considered in the while loop condition (these edges are covered). Hence no two edges in $A$ are covered by the same vertex in $C^*$, meaning that 
+    \[ |C^*| \geq |A| \]
+    Moreover, as $|C| = 2|A|$ (no edges are incident on one another, so we map pairs of vertices in $C$ to edges in $A$), we have that
+    \[ |C| \leq 2|C^*| \]
+    \subsection{Linear Program Algorithm for MinVertexCover}
+    We introduce variables $\{x_v\}_{v \in V}$ such that $x_v = 1$ if $v$ belongs the the vertex cover, $O$ otherwise. We can then form an ILP:
+    \begin{alignat*}{3}
+        \text{minimise}  &\quad \sum_{v \in V} x_v && \\
+        \text{subject to} 
+        &\quad x_u + x_v &&\geq 1 && \quad \text{ for all $(u,v) \in E$} \\
+        &\quad x_v &&\in \{0,1\} && \quad \text{ for all $v \in V$}
+    \end{alignat*}
+    We can also form the relaxed LP:
+    \begin{alignat*}{3}
+        \text{minimise}  &\quad \sum_{v \in V} x_v && \\
+        \text{subject to} 
+        &\quad x_u + x_v &&\geq 1 && \quad \text{ for all $(u,v) \in E$} \\
+        &\quad x_v &&\geq 0 && \quad \text{ for all $v \in V$} \\ 
+        &\quad x_v &&\leq 1 && \quad \text{ for all $v \in V$}
+    \end{alignat*}
+    We can then round each $v \in V$. If $x_v^* \geq \frac{1}{2}$ then $y_v = 1$ else $y_v = 0$. Then the vertex cover is $C \{ v \ | \ y_v = 1 \}$. We know that this is a VC as by the constraints, at least one of $x_u^*, x_v^* \geq \frac{1}{2}$\\ \\
+    We also know that $|C*| \geq \sum_{v \in V}x_v^*$, as the ILP is more constrained that the relaxed LP. Furthermore $y_v \leq 2x_v^*$, so 
+    \begin{align*}
+        |C| &= \sum_{v \in V} y_v \\
+            &\leq 2 \sum_{v \in V} x_v^* \\
+            &\leq 2 |C^*|
+    \end{align*}
+    \subsection{Greedy Algorithm for SetCover}
+    Given a set $U$ = $\{ u_1, \ldots, u_n \}$ and a collection of subsets of $U$, $\mathcal{F} = \{ S_1, \ldots, S_m \}$ how can we find the minimum number of sets from $\mathcal{F}$ whose union is $U$? \\ \\
+    GREEDY-SET-COVER(G)
+    \begin{algorithmic}
+        \State{$C := \emptyset$}
+        \While{ $\exists$ an element of $U$ not covered by $C$}
+            \State{Pick $S \in \mathcal{F}$} that contains the maximum number of uncovered elements
+            \State{$C := C \cup \{S\}$}
+        \EndWhile
+    \end{algorithmic}
+    We can see that $C$ is a set cover of $U$. We also claim that $|C| \leq (ln \ n + 1)|C^*|$. At step $t$ of the while loop, let $n_t$ be the number of uncovered elements. There exists a set in $C^*$ that covers at least $\frac{n_t}{|C^*|}$, as otherwise $\bigcup_{S \in C^*} S$ would have less than $n_t$ elements. Hence the set $S$ chosen at this stage of the while loop also covers $\frac{n_t}{|C^*|}$ elements. Hence
+    \begin{align*}
+        n_{t+1} &\leq n_t - \frac{n_t}{|C^*|} \\ 
+                &= (1 - \frac{1}{|C^*|})n_t
+    \end{align*} 
+    Hence 
+    \[ n_t \leq (1 - \frac{1}{|C^*|})^t n \]
+    So for $t > |C^*| ln \ n$
+    \begin{align*}
+        n_t &< (1 - \frac{1}{|C^*|})^{|C^*| ln \ n} n \\ 
+            &\leq 1 \tag{Using $1 - \frac{1}{|C^*|} \leq e^{\frac{-1}{|C^*|}}$}
+    \end{align*}
+    Meaning that after $|C^*| \ ln \ n$ steps, we have fewer than $1$, i.e. $0$ uncovered elements. Hence 
+    \begin{align*}
+        |C| &\leq |C^*| ln \ n + 1 \\
+            &\leq (ln \ n + 1) |C^*|
+    \end{align*} 
+    \subsection{LP Rounding for SetCover}
+    We introduce variables $\{ x_S \}_{S \in \mathcal{F}}$ such that $x_S$ = 1 if $S$ belongs to set cover $C$, otherwise $0$. \\ \\ 
+    We can form the ILP:
+    \begin{alignat*}{3}
+        \text{minimise}  &\quad \sum_{S \in F} x_S && \\
+        \text{subject to} 
+        &\quad \sum_{S \ : \ u \in S} &&\geq 1 && \quad \text{ for all $u \in U$} \\
+        &\quad x_S &&\in \{0,1\} && \quad \text{ for all $S \in F$}
+    \end{alignat*}
+    And also the relaxed LP:
+    \begin{alignat*}{3}
+        \text{minimise}  &\quad \sum_{S \in F} x_S && \\
+        \text{subject to} 
+        &\quad \sum_{S \ : \ u \in S} &&\geq 1 && \quad \text{ for all $u \in U$} \\
+        &\quad x_S &&\leq 1 && \quad \text{ for all $S \in F$} \\ 
+        &\quad x_S &&\geq 0 && \quad \text{ for all $S \in F$} \\ 
+    \end{alignat*}
+    We can then round by setting $y_s = 1$ iff $x_S^* \geq \frac{1}{f}$, where $f = max_{u \in U} |\{ S \in \mathcal{F} \ | \ u \in S \}| $ is the maximum frequency of an element in $U$. We can also see that $|C| \leq f \cdot |C^*|$, as for every $S \in \mathcal{F}$ we have that $y_s \leq f x_S^*$, so 
+    \begin{align*}
+        |C| &= \sum_{S \in F} y_S \\ 
+            &\leq f \sum_{S \in \mathcal{F}} x_S^* \\ 
+            \leq f \cdot |C^*|
+    \end{align*}
+    \subsection{$\frac{1}{2}$-Approximation for MaxSAT}
+    Given a CNF formula $\phi$, what are the maximum number of clauses that can be satisfied by a variable assignment? \\ \\
+    We use a randomisation algorithm for this. Let $V$ be the variables of $\phi$, we set $\sigma(x)$ to be TRUE or FALSE with probability $\frac{1}{2}$. Let $X$ equal the number of satisfied clauses under $\sigma$. \\ \\
+    For any clause $c$, denote the number of literals in $c$ by $|c|$. We also say that $X_c$ = 1 if $c$ is satisfied by $\sigma$, and 0 otherwise. We can then see that 
+    \[ X = \sum_{c \in C} X_c \]
+    By the linearity of expectation, we can see that $\mathbb{E}(X) = \sum_{c \in C} \mathbb{E}[X_c]$. Since we also know that the probability that $c$ is unsatisfied is $1- \frac{1}{2^{|c|}}$,
+    \begin{align*}
+        \mathbb{E}(X) &= \sum_{c \in C} \mathbb{E}(X_c) \\
+                      &= \sum_{c \in C} \mathbb{P}(\text{$c$ is unsatisfied}) \\
+                      &= \sum_{c \in C} 1 - \frac{1}{2^{|c|}} \\ 
+                      &= \sum_{c \in C} \frac{1}{2} + (\frac{1}{2} - \frac{1}{2^{|c|}}) \\ 
+                      &\geq \frac{1}{2}|C|
+    \end{align*}
+    So we have are guaranteed at least $\frac{|C|}{2}$ clauses to be satisfied in expectation (which means that such an assignment actually exists). We can see by Markov's inequality that the probability of failure (that we do not find such an assignment) is bounded by $\frac{|C|}{|C|+1}$. Let $Y = |C| - X$ be the number of unsatisfied clauses, then
+    \begin{align*}
+        \mathbb{P}(Y > \frac{|C|}{2}) &= \mathbb{P}(Y \geq \frac{|C|+1}{2}) \\
+        &\leq \frac{2}{|C|+1}\mathbb{E}(Y) \\
+        &\leq \frac{|C|}{|C+1}
+    \end{align*}
+    Hence after we have tried the algorithm $10(|C|+1)$ times, we have that
+    \begin{align*}
+        \mathbb{P}(\text{no success}) &= (\frac{|C|}{|C|+1})^{10(|C|+1)} \\ 
+        &= (1 - \frac{1}{|C|+1})^{10(|C|+1)} \\ 
+        &\leq e^{-10} \\
+        &< 10^{-4}
+    \end{align*}
+
+    \subsection{Derandomisation}
+        
+    
+    \section{Fixed Parameter Algorithms}
 
 \end{document}
